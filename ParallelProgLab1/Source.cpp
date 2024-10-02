@@ -55,39 +55,38 @@ int main()
         SetConsoleOutputCP(CP_UTF8);
     #endif
     
-    int countP = 5;
+    int countThreads = 5;
     double step;
     double lowerLimit;
     double upperLimit;
 
-    cout << "Введите через пробел: максимальный и минимальный предел интегрирования, количество потоков (от 1 до 8) и величину шага" << '\n';
-    cin >> upperLimit >> lowerLimit >> countP >> step; 
+    cout << "Введите через пробел: минимальный и максимальный предел интегрирования, количество потоков (от 1 до 8) и величину шага" << '\n';
+    cin >> lowerLimit >> upperLimit >> countThreads >> step;
 
     clock_t start_time = clock();
     
-    IntegralParams* params = new IntegralParams[countP];
+    IntegralParams* params = new IntegralParams[countThreads];
 
-    pthread_t* pthread = new pthread_t[countP];
+    pthread_t* threads = new pthread_t[countThreads];
     
 
-    int length = (upperLimit - lowerLimit) / countP;
+    double length = (upperLimit - lowerLimit) / countThreads;
 
-    for (int i = 0; i < countP; i++)
+    for (int i = 0; i < countThreads; i++)
     {
         params[i].step = step;
         params[i].lowerLimit = lowerLimit + length * i;
-
         params[i].upperLimit = params[i].lowerLimit + length;
-        //CalculateIntegral(&params[i]);
-        pthread_create(&pthread[i], NULL, CalculateIntegral, &params[i]);
+
+        pthread_create(&threads[i], NULL, CalculateIntegral, &params[i]);
     }
 
-    for (int i = 0; i < countP; i++)
+    for (int i = 0; i < countThreads; i++)
     {
-        pthread_join(pthread[i], NULL);
+        pthread_join(threads[i], NULL);
     }
 
-    for (int i = 0; i < countP; i++)
+    for (int i = 0; i < countThreads; i++)
     {
         res += params[i].out;
     }
