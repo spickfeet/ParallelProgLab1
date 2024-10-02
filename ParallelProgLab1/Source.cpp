@@ -1,5 +1,7 @@
 #include "pthread/pthread.h"
 #include <iostream>
+#include <ctime>
+#include <windows.h>
 #pragma comment(lib,"pthread/pthreadVCE2.lib")
 using namespace std;
 
@@ -19,6 +21,7 @@ void* CalculateIntegral(void* args)
     double w[4] = { 1, 3, 3, 1 };
     double sum = 0;
     double result = 0;
+    
     while (true)
     {
         x -= params->step;
@@ -47,14 +50,24 @@ int main()
 {
     double res = 0;
 
-    const int countP = 5;
-    double step = 0.01;
-    double lowerLimit = 0;
-    double upperLimit = 10;
+    #ifdef _WIN32
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+    #endif
+    
+    int countP = 5;
+    double step;
+    double lowerLimit;
+    double upperLimit;
 
-    IntegralParams params[countP];
+    cout << "Введите через пробел: максимальный и минимальный предел интегрирования, количество потоков (от 1 до 8) и величину шага" << '\n';
+    cin >> upperLimit >> lowerLimit >> countP >> step; 
 
-    pthread_t pthread[countP];
+    clock_t start_time = clock();
+    
+    IntegralParams* params = new IntegralParams[countP];
+
+    pthread_t* pthread = new pthread_t[countP];
     
 
     int length = (upperLimit - lowerLimit) / countP;
@@ -80,5 +93,7 @@ int main()
     }
 
 	cout << res << endl;
+    cout << "Затраченное время: " << static_cast<float>(clock() - start_time)/CLOCKS_PER_SEC << " секунды" << endl;
+    
 	return 0;
 }
