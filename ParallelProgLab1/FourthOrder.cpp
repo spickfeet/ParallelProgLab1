@@ -1,8 +1,8 @@
-#include "Function.cpp"
+#include <cmath>
 class ThirdOrder
 {
 public:
-    double CalculateIntegral(double step, double lowerLimit, double upperLimit)
+    double CalculateIntegral(double step, double lowerLimit, double upperLimit, double* out)
     {
         double x = lowerLimit;
         double c0 = 3.0 / 8.0;
@@ -22,6 +22,6 @@ public:
             if (x + step / 2 > upperLimit)
                 break;
         }
-        return result;
+        *out = result;
     }
 };
