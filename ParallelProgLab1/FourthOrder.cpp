@@ -1,15 +1,7 @@
 #include "Function.cpp"
-class FourthOrder
+class ThirdOrder
 {
 public:
-	FourthOrder(Function func) 
-	{
-		_func = func;
-	}
-	~FourthOrder() 
-	{
-        _func.~Function();
-	}
     double CalculateIntegral(double step, double lowerLimit, double upperLimit)
     {
         double x = lowerLimit;
@@ -23,7 +15,7 @@ public:
             for (int i = 0; i < 4; i++)
             {
                 x += step;
-                sum += w[i] * _func.MainFunction(x);
+                sum += w[i] * (1 + x) / pow((2 + 3 * x), 2);
             }
             result += sum * c0 * step;
             sum = 0;
@@ -32,7 +24,4 @@ public:
         }
         return result;
     }
-
-private:
-	Function _func;
 };
