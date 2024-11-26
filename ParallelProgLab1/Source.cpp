@@ -106,7 +106,7 @@ using namespace std;
 // ЛАБ 2
 
 template<typename T>
-class SaveQueue
+class Queue
 {
 public:
 
@@ -154,10 +154,10 @@ private:
 
 };
 
-class FileWorker {
+class File {
 public:
 	int countThreadStopRead = 0;
-	FileWorker(string readName, string writeName)
+	File(string readName, string writeName)
 	{
 		readStream.open(readName, ios_base::in);
 		writeStream.open(writeName, ios_base::out);
@@ -181,7 +181,7 @@ public:
 		writeStream << (result == true ? "Да" : "Нет") << endl;
 		writeMutex.unlock();
 	}
-	~FileWorker()
+	~File()
 	{
 		readStream.close();
 		writeStream.close();
@@ -196,8 +196,8 @@ private:
 
 typedef struct Params
 {
-	FileWorker* fileWorker;
-	SaveQueue<bool>* queue;
+	File* fileWorker;
+	Queue<bool>* queue;
 };
 
 bool isPrime(int n)
@@ -230,16 +230,13 @@ void* readAndCheck(void* args)
 		{
 			params->fileWorker->countThreadStopRead += 1;
 			return NULL;
-
 		}
 	}
 }
-mutex m;
 
-void* writeCons(void* args)
+void* write(void* args)
 {
 	Params* params = (Params*)args;
-	int c = 0;
 	while (params->fileWorker->countThreadStopRead != 2 or params->queue->empty() == false)
 	{		
 
@@ -247,7 +244,6 @@ void* writeCons(void* args)
 			continue;
 		}
 		bool value = params->queue->pop();
-		c++;
 		params->fileWorker->writeResult(value);		
 	}
 	return NULL;	
@@ -258,9 +254,9 @@ void* writeCons(void* args)
 
 int main()
 {
-	FileWorker* fileWorker = new FileWorker("read.txt", "result.txt");
-	SaveQueue<bool>* queue1 = new SaveQueue<bool>();
-	SaveQueue<bool>* queue2 = new SaveQueue<bool>();
+	File* fileWorker = new File("read.txt", "result.txt");
+	Queue<bool>* queue1 = new Queue<bool>();
+	Queue<bool>* queue2 = new Queue<bool>();
 
 	int b = 3;
 
@@ -275,10 +271,10 @@ int main()
 	pthread_t* threads = new pthread_t[4];
 
 	pthread_create(&threads[0], NULL, readAndCheck, &params[0]);
-	pthread_create(&threads[1], NULL, writeCons, &params[0]);
+	pthread_create(&threads[1], NULL, write, &params[0]);
 
 	pthread_create(&threads[2], NULL, readAndCheck, &params[1]);
-	pthread_create(&threads[3], NULL, writeCons, &params[1]);
+	pthread_create(&threads[3], NULL, write, &params[1]);
 	
 	pthread_join(threads[0], NULL);
 	pthread_join(threads[1], NULL);
