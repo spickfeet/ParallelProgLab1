@@ -1,4 +1,5 @@
 #include "pthread/pthread.h"
+#include <string>
 #include <iostream>
 #include <ctime>
 #include <windows.h>
@@ -149,7 +150,7 @@ public:
 	}
 
 private:
-	std::queue<bool> queue;
+	std::queue<T> queue;
 	mutex mutex;
 
 };
@@ -175,10 +176,10 @@ public:
 		return number;
 	}
 
-	void writeResult(bool result)
+	void writeResult(string result)
 	{
 		writeMutex.lock();
-		writeStream << (result == true ? "Да" : "Нет") << endl;
+		writeStream << result << endl;
 		writeMutex.unlock();
 	}
 	~File()
@@ -197,7 +198,7 @@ private:
 typedef struct Params
 {
 	File* fileWorker;
-	Queue<bool>* queue;
+	Queue<string>* queue;
 };
 
 bool isPrime(int n)
@@ -223,7 +224,7 @@ void* readAndCheck(void* args)
 		int num = params->fileWorker->readNumber();
 		if (num != -1)
 		{
-			params->queue->push(isPrime(num));
+			params->queue->push(to_string(num) + (isPrime(num) == true ? " Да" : " Нет"));
 			
 		}
 		else 
@@ -243,7 +244,7 @@ void* write(void* args)
 		if (params->queue->empty()) {
 			continue;
 		}
-		bool value = params->queue->pop();
+		string value = params->queue->pop();
 		params->fileWorker->writeResult(value);		
 	}
 	return NULL;	
@@ -255,8 +256,8 @@ void* write(void* args)
 int main()
 {
 	File* fileWorker = new File("read.txt", "result.txt");
-	Queue<bool>* queue1 = new Queue<bool>();
-	Queue<bool>* queue2 = new Queue<bool>();
+	Queue<string>* queue1 = new Queue<string>();
+	Queue<string>* queue2 = new Queue<string>();
 
 	int b = 3;
 
