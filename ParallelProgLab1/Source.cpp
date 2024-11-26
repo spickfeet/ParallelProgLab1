@@ -132,11 +132,9 @@ public:
 
 	bool empty() 
 	{
-		mutex.lock();
 
 		bool res = queue.empty();
 
-		mutex.unlock();
 		return res;
 	}
 
@@ -151,14 +149,14 @@ public:
 	}
 
 private:
-	std::queue<int> queue;
+	std::queue<bool> queue;
 	mutex mutex;
 
 };
 
 class FileWorker {
 public:
-	bool stopRead = false;
+	int countThreadStopRead = 0;
 	FileWorker(string readName, string writeName)
 	{
 		readStream.open(readName, ios_base::in);
@@ -170,7 +168,6 @@ public:
 		int number;
 		readStream >> number;
 		if (readStream.fail()) {
-			stopRead = true;
 			readMutex.unlock();
 			return -1;
 		}
@@ -190,11 +187,6 @@ public:
 		writeStream.close();
 	}
 
-	FileWorker& operator=(const FileWorker& other)
-	{
-		return *this;
-	}
-
 private:
 	std::mutex readMutex;
 	std::mutex writeMutex;
@@ -205,14 +197,8 @@ private:
 typedef struct Params
 {
 	FileWorker* fileWorker;
-	SaveQueue<int>* queue;
-	bool stop;
+	SaveQueue<bool>* queue;
 };
-
-#include<iostream>
-#include<mutex>
-#include<vector>
-#include<fstream>
 
 bool isPrime(int n)
 {
@@ -230,21 +216,22 @@ bool isPrime(int n)
 
 void* readAndCheck(void* args)
 {
-	int count = 0;
 	Params* params = (Params*)args;
 	while (true)
 	{
 
 		int num = params->fileWorker->readNumber();
-		if (params->fileWorker->stopRead == true)
+		if (num != -1)
 		{
-			//cout << num << endl;
-			params->stop = true;
-			return NULL;
+			params->queue->push(isPrime(num));
+			
 		}
-		count++;
-		//cout << count << endl;
-		params->queue->push(num);
+		else 
+		{
+			params->fileWorker->countThreadStopRead += 1;
+			return NULL;
+
+		}
 	}
 }
 mutex m;
@@ -253,18 +240,18 @@ void* writeCons(void* args)
 {
 	Params* params = (Params*)args;
 	int c = 0;
-	while (params->stop == false or params->queue->size() != 0)
+	while (params->fileWorker->countThreadStopRead != 2 or params->queue->empty() == false)
 	{		
+
 		if (params->queue->empty()) {
 			continue;
 		}
-		int num = params->queue->pop();
+		bool value = params->queue->pop();
 		c++;
-		params->fileWorker->writeResult(isPrime(num));
-		//std::cout << (params->stop == false) << " " << (params->queue->size() != 0) << endl;
-		
+		params->fileWorker->writeResult(value);		
 	}
-	return NULL;
+	return NULL;	
+
 
 }
 
@@ -272,20 +259,20 @@ void* writeCons(void* args)
 int main()
 {
 	FileWorker* fileWorker = new FileWorker("read.txt", "result.txt");
-	SaveQueue<int>* queue = new SaveQueue<int>();
+	SaveQueue<bool>* queue1 = new SaveQueue<bool>();
+	SaveQueue<bool>* queue2 = new SaveQueue<bool>();
 
 	int b = 3;
 
-	Params* params = new Params();
+	Params* params = new Params[2];
 
-	params->fileWorker = fileWorker;
-	params->queue = queue;
-	params->stop = false;
+	params[0].fileWorker = fileWorker;
+	params[0].queue = queue1;
+
+	params[1].fileWorker = fileWorker;
+	params[1].queue = queue2;
 
 	pthread_t* threads = new pthread_t[4];
-	
-	//readAndCheck(&params[0]);
-	//writeCons(&params[0]);
 
 	pthread_create(&threads[0], NULL, readAndCheck, &params[0]);
 	pthread_create(&threads[1], NULL, writeCons, &params[0]);
@@ -297,6 +284,4 @@ int main()
 	pthread_join(threads[1], NULL);
 	pthread_join(threads[2], NULL);
 	pthread_join(threads[3], NULL);
-
-	//cout<< queue->size() <<endl;
 }
